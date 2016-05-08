@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import textwrap
+import os
 import logging
 
 try:
@@ -18,14 +19,17 @@ logger = logging.getLogger(__name__)
 
 def plot_scatter(x,y,xaxis_min=None, xaxis_max=None, yaxis_min=None, yaxis_max=None):
     """
-    Create a scatter plot
+    Create a scatter plot.  If x and y have the same number of columns, then 
+    the columns of x are plotted against the corresponding columns of y, in order.
+    If x (or y) has 1 column, then that column of data is plotted against all
+    the columns in y (or x).
     
     Parameters
     ----------
-    x : pd.Series
+    x : pd.DataFrame
         x data
     
-    y : pd.Series
+    y : pd.DataFrame
         y data
     
     xaxis_min : float (optional)
@@ -80,20 +84,21 @@ def plot_scatter(x,y,xaxis_min=None, xaxis_max=None, yaxis_min=None, yaxis_max=N
     box = ax.get_position()
     ax.set_position([box.x0, box.y0+0.2, box.width, box.height*0.8])
     
-def plot_timeseries(data, tfilter, test_results_group=None, xaxis_min=None, xaxis_max=None, yaxis_min=None, yaxis_max=None):
+def plot_timeseries(data, tfilter=None, test_results_group=None, xaxis_min=None, xaxis_max=None, yaxis_min=None, yaxis_max=None):
     """
-    Create a time series plot
+    Create a time series plot using each column in the DataFrame.
     
     Parameters
     ----------
-    data : pd.Series
+    data : pd.DataFrame
         Data, indexed by time
         
-    tfilter : pd.Series
+    tfilter : pd.Series (optional)
         Boolean values used to include time filter in the plot 
         
-    test_results_group : pd.Series (optional)
-        Test results grouped by variable name
+    test_results_group : pd.DataFrame (optional)
+        Test results for a particular variable.  To group test results by variable, use
+        grouped = pm.test_results.groupby(['System Name', 'Variable Name']).
     
     xaxis_min : float (optional)
         X-axis minimum        
@@ -117,17 +122,18 @@ def plot_timeseries(data, tfilter, test_results_group=None, xaxis_min=None, xaxi
         else:
             data.plot(ax=ax, grid=False, legend=False, fontsize=8, rot=90, label='Data')
     
-        # add tfilter        
-        temp = np.where(tfilter - tfilter.shift())
-        temp = np.append(temp[0],len(tfilter)-1)
-        count = 0
-        for i in range(len(temp)-1):
-            if tfilter[temp[i]] == 0:
-                if count == 0:
-                    ax.axvspan(data.index[temp[i]], data.index[temp[i+1]], facecolor='k', alpha=0.2, label='Time filter')
-                    count = count+1
-                else:
-                    ax.axvspan(data.index[temp[i]], data.index[temp[i+1]], facecolor='k', alpha=0.2)     
+        if tfilter is not None:
+            # add tfilter        
+            temp = np.where(tfilter - tfilter.shift())
+            temp = np.append(temp[0],len(tfilter)-1)
+            count = 0
+            for i in range(len(temp)-1):
+                if tfilter[temp[i]] == 0:
+                    if count == 0:
+                        ax.axvspan(data.index[temp[i]], data.index[temp[i+1]], facecolor='k', alpha=0.2, label='Time filter')
+                        count = count+1
+                    else:
+                        ax.axvspan(data.index[temp[i]], data.index[temp[i+1]], facecolor='k', alpha=0.2)     
         
         # add errors 
         try:
@@ -174,8 +180,10 @@ def plot_timeseries(data, tfilter, test_results_group=None, xaxis_min=None, xaxi
         
         # Format axis
         xmin_plt, xmax_plt = plt.xlim()
-        ymin_plt = np.nanmin(data[tfilter].values)
-        ymax_plt = np.nanmax(data[tfilter].values)
+        ymin_plt, ymax_plt = plt.ylim()
+        if tfilter is not None:
+            ymin_plt = np.nanmin(data[tfilter].values)
+            ymax_plt = np.nanmax(data[tfilter].values)
         if np.abs(ymin_plt - ymax_plt) < 0.01:
             ymin_plt, ymax_plt = plt.ylim()
     except:
@@ -202,19 +210,29 @@ def plot_timeseries(data, tfilter, test_results_group=None, xaxis_min=None, xaxi
     ax.set_position([box.x0, box.y0+0.2, box.width, box.height*0.64])
 
 @_nottest
-def plot_test_results(filename, pm):
+def plot_test_results(filename_root, pm):
     """
-    Create test results graphics.
-    Graphics include data that failed a quality control test.
+    Create test results graphics which highlight data points that
+    failed a quality control test.
 
     Parameters
     ----------
     filename : string
-        Filename root, each graphic is appended with '_pecos_*.jpg' where * is an integer
+        Filename root, with full path.  
+        Each grpahics filename is appended with an integer.
+        For example, filename_root = 'C:\\\\pecos\\\\results\\\\test' will generate a file named 
+        'C:\\\\pecos\\\\results\\\\test1.jpg'.
+        The directory ''C:\\\\pecos\\\\results' must exist.
 
     pm : PerformanceMonitoring object
         Contains data (pm.df) and test results (pm.test_results)
     """
+    
+    filename_root = os.path.abspath(filename_root)
+    
+    # Colect file names
+    test_results_graphics = []
+    
     if pm.test_results.empty:
         return
 
@@ -244,7 +262,12 @@ def plot_test_results(filename, pm):
         ax.set_position([box.x0, box.y0, box.width*0.65, box.height])
         plt.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize=8)
         plt.title(col_name, fontsize=8)
-
-        plt.savefig(filename +'_pecos_'+str(graphic)+'.jpg', format='jpg', dpi=500)
+        
+        filename = filename_root + str(graphic) + '.jpg'
+        test_results_graphics.append(filename)
+        plt.savefig(filename, format='jpg', dpi=500)
+        
         graphic = graphic + 1
         plt.close()
+
+    return test_results_graphics

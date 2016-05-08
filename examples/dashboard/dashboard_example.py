@@ -12,8 +12,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 import datetime
-from os.path import join, abspath
-from glob import glob
 
 # Initialize logger
 pecos.logger.initialize()
@@ -26,6 +24,8 @@ if not os.path.exists(results_directory):
     os.makedirs(results_directory)
 dashboard_filename = os.path.join(results_directory, 'Dashboard_example.html')
 dashboard_content = {} 
+
+np.random.seed(500)
 
 for location_name in locations:
     for system_name in systems:
@@ -81,21 +81,23 @@ for location_name in locations:
         mask = pm.get_test_results_mask()
         QCI = pecos.metrics.qci(mask, pm.tfilter)
         
-        # Create a custom graphic
+        # Generate graphics
+        test_results_filename_root = os.path.join(results_subdirectory, 'test_results')
+        test_results_graphics = pecos.graphics.plot_test_results(test_results_filename_root, pm)
         df.plot()
-        plt.savefig(os.path.join(results_subdirectory, location_system_date + '_custom.jpg')) 
-        
-        # Generate report
+        custom_graphic = os.path.abspath(os.path.join(results_subdirectory, 'custom.jpg'))
+        plt.savefig(custom_graphic, format='jpg', dpi=500)
+
+        # Generate reports
         pecos.io.write_test_results(test_results_file, pm.test_results)
         pecos.io.write_metrics(metrics_file, QCI)
-        pecos.io.write_monitoring_report(report_file, results_subdirectory, pm, metrics=QCI)
+        pecos.io.write_monitoring_report(report_file, pm, test_results_graphics, [custom_graphic], QCI)
             
-        graphics = glob(abspath(join(results_subdirectory, '*custom*.jpg')))
         metrics_table = QCI.transpose().to_html(bold_rows=False, header=False)
         content = {'text': "Example text for " + location_system, 
-                   'graphics': graphics, 
+                   'graphics': [custom_graphic], 
                    'table':  metrics_table, 
-                   'link': abspath(report_file),
+                   'link': os.path.abspath(report_file),
                    'link text': 'Link to Report'}
         dashboard_content[(system_name, location_name)] = content
         
