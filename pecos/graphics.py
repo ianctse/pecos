@@ -78,11 +78,11 @@ def plot_scatter(x,y,xaxis_min=None, xaxis_max=None, yaxis_min=None, yaxis_max=N
         yaxis_min = ymin_plt
     if not yaxis_max:
         yaxis_max = ymax_plt
-    plt.ylim((xaxis_min, xaxis_max))
+    plt.xlim((xaxis_min, xaxis_max))
     plt.ylim((yaxis_min, yaxis_max))
     ax.tick_params(axis='both', labelsize=8)
     box = ax.get_position()
-    ax.set_position([box.x0, box.y0+0.2, box.width, box.height*0.8])
+    ax.set_position([box.x0, box.y0+0.15, box.width, box.height*0.75])
     
 def plot_timeseries(data, tfilter=None, test_results_group=None, xaxis_min=None, xaxis_max=None, yaxis_min=None, yaxis_max=None):
     """
@@ -201,16 +201,16 @@ def plot_timeseries(data, tfilter=None, test_results_group=None, xaxis_min=None,
         yaxis_min = ymin_plt-y_range/10
     if not yaxis_max:
         yaxis_max = ymax_plt+y_range/10
-    plt.ylim((xaxis_min, xaxis_max))
+    plt.xlim((xaxis_min, xaxis_max))
     plt.ylim((yaxis_min, yaxis_max))
     ax.get_yaxis().get_major_formatter().set_useOffset(False)
     ax.tick_params(axis='both', labelsize=8)
     plt.xlabel('Time', fontsize=8)
     box = ax.get_position()
-    ax.set_position([box.x0, box.y0+0.2, box.width, box.height*0.64])
+    ax.set_position([box.x0, box.y0+0.15, box.width, box.height*0.75])
 
 @_nottest
-def plot_test_results(filename_root, pm):
+def plot_test_results(filename_root, pm, image_format='png'):
     """
     Create test results graphics which highlight data points that
     failed a quality control test.
@@ -221,11 +221,15 @@ def plot_test_results(filename_root, pm):
         Filename root, with full path.  
         Each grpahics filename is appended with an integer.
         For example, filename_root = 'C:\\\\pecos\\\\results\\\\test' will generate a file named 
-        'C:\\\\pecos\\\\results\\\\test1.jpg'.
+        'C:\\\\pecos\\\\results\\\\test1.png'.
         The directory ''C:\\\\pecos\\\\results' must exist.
 
     pm : PerformanceMonitoring object
         Contains data (pm.df) and test results (pm.test_results)
+        
+    image_format : string  (optional)
+        Image format, default = 'png'
+    
     """
     
     filename_root = os.path.abspath(filename_root)
@@ -234,7 +238,7 @@ def plot_test_results(filename_root, pm):
     test_results_graphics = []
     
     if pm.test_results.empty:
-        return
+        return test_results_graphics
 
     graphic = 0
 
@@ -263,9 +267,9 @@ def plot_test_results(filename_root, pm):
         plt.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize=8)
         plt.title(col_name, fontsize=8)
         
-        filename = filename_root + str(graphic) + '.jpg'
+        filename = filename_root + str(graphic) + '.' + image_format
         test_results_graphics.append(filename)
-        plt.savefig(filename, format='jpg', dpi=500)
+        plt.savefig(filename, format=image_format, dpi=500)
         
         graphic = graphic + 1
         plt.close()

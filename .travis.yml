@@ -12,6 +12,10 @@ matrix:
       env: CONDA_ENV=py27-min
     - python: 2.7
       env: CONDA_ENV=py27
+    - python: 3.4
+      env: CONDA_ENV=py34
+    - python: 3.5
+      env: CONDA_ENV=py35
 
 addons:
     apt:
@@ -21,6 +25,11 @@ addons:
 cache:
     directories:
         - $HOME/.ccache
+
+before_script: 
+    - "export DISPLAY=:99.0"
+    - "sh -e /etc/init.d/xvfb start"
+    - sleep 3 # give xvfb some time to start
 
 # setup miniconda for numpy, scipy, pandas
 before_install:
