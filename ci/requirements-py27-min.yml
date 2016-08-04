@@ -10,5 +10,7 @@ dependencies:
     - pvlib
     - matplotlib
     - ephem
+    - jinja2
+    - xlrd
     - pip:
         - coveralls
